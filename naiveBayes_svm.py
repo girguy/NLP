@@ -10,7 +10,8 @@ import re
 import pandas as pd
 pd.options.mode.chained_assignment = None
 import string
-#import nltk
+import nltk
+import scipy as scipy
 
 """
 Remove HTML entities from the comments
@@ -63,6 +64,19 @@ def remove_stop_words(comment):
     global list_stop_words
     return list_stop_words.sub(" ", comment)
 
+from nltk.stem import SnowballStemmer
+stemmer = SnowballStemmer("english")
+def stemming(comment):
+    stemSentence = ""
+    for word in comment.split():
+        stem = stemmer.stem(word)
+        stemSentence += stem
+        stemSentence += " "
+    stemSentence = stemSentence.strip()
+    return stemSentence
+
+    
+
 """
 Cleaning function
 """
@@ -73,66 +87,85 @@ def corpus_cleaning(data):
     data['comment_text'] = data['comment_text'].apply(clean_punc)
     data['comment_text'] = data['comment_text'].apply(clean_non_alpha)
     data['comment_text'] = data['comment_text'].apply(remove_stop_words)
+    data['comment_text'] = data['comment_text'].apply(stemming)
   
     return data
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+"""
+This function return a document-word matrix computed for TFIDF
+"""
+def function_tfidf(data):
+    #In order to use TfidfVectorizer, pandas dataframe is converted in a list
+    text = data["comment_text"].values.tolist()
+    tfidf_vectorizer = TfidfVectorizer(use_idf=True, max_features=24626, min_df=5)
+
+    return tfidf_vectorizer.fit_transform(text)
+
+from sklearn.preprocessing import MultiLabelBinarizer
+y_mlb = MultiLabelBinarizer()
+
+"""
+Transform the labels format in order to use it in the machine learning api.
+"""
+def function_labels(data):
+    #In order to use TfidfVectorizer, pandas dataframe is converted in a list
+    data = data.values.tolist()
+    return y_mlb.fit_transform(data)
 
 
 if __name__ == "__main__":
     
     train = pd.read_csv('/home/cj/Bureau/Master2/webAndText/project/data/train.csv')
     train_text = train.filter(["comment_text"], axis=1)
-    train_labels = train.drop(labels = ['id','comment_text'], axis=1)
-    
+
+    #Data cleaning and feature extraction for training set
+    train_text = corpus_cleaning(train_text)
+    X_train_tfidf = function_tfidf(train_text)
+    #Save
+    scipy.sparse.save_npz('/home/cj/Bureau/X_train_tfidf.npz', X_train_tfidf)
+
     test = pd.read_csv('/home/cj/Bureau/Master2/webAndText/project/data/test.csv')
     test_text = test.filter(["comment_text", ], axis=1)
+
+    #Data cleaning and feature extraction for test set
+    test_text = corpus_cleaning(test_text)
+    X_test_tfidf = function_tfidf(test_text)
+    #Save
+    scipy.sparse.save_npz('/home/cj/Bureau/X_test_tfidf.npz', X_test_tfidf)
+
+    # Training set labels
+    train_labels = train.drop(labels = ['id','comment_text'], axis=1)
+    y_train = function_labels(train_labels)
+
+    # Test set labels
     test_labels = pd.read_csv('/home/cj/Bureau/Master2/webAndText/project/data/test_labels.csv')
     test_labels = test_labels.drop(labels = "id", axis=1)
+    y_test = function_labels(test_labels)
     
-    """
-    X_train_bis = X_train.iloc[0:10000, :]
-    Y_train_bis = Y_train.iloc[0:10000, :]
-    X_test_bis = X_test.iloc[0:10000, :]
-    Y_test_bis = Y_test.iloc[0:10000, :]
-    """
+    #%%
+    print(X_train_tfidf.shape[1])
+    print(X_test_tfidf.shape[1])
+    #%%
     
-    train_text = corpus_cleaning(train_text)
-    X_train = train_text["comment_text"].values.tolist()
-    test_text = corpus_cleaning(test_text)
-    X_test = test_text["comment_text"].values.tolist()
-     
-    from sklearn.feature_extraction.text import TfidfVectorizer 
- 
-    tfidf_vectorizer = TfidfVectorizer(use_idf=True, max_features=5000)
-    
-    X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
-    X_test_tfidf = tfidf_vectorizer.fit_transform(X_test)
-    
-    # using binary relevance
     from skmultilearn.problem_transform import BinaryRelevance
+
     from sklearn.naive_bayes import GaussianNB
-    from sklearn.metrics import accuracy_score
-    # initialize binary relevance multi-label classifier
-    # with a gaussian naive bayes base classifier
-    
     classifier = BinaryRelevance(GaussianNB())
     
     from sklearn.svm import LinearSVC
     #classifier = BinaryRelevance(LinearSVC())
     
-    from sklearn.preprocessing import MultiLabelBinarizer
-    train_labels = train_labels.values.tolist()
-    test_labels = test_labels.values.tolist()
-    
-    y_mlb = MultiLabelBinarizer()
-    y_train = y_mlb.fit_transform(train_labels)
-    y_test = y_mlb.fit_transform(test_labels)
-    
     # train
-    classifier.fit(X_train_tfidf[0:153163], y_test[0:153163])
+    classifier.fit(X_train_tfidf[0:20000], y_test[0:20000])
+    
     # predict
-    predictions = classifier.predict(X_test_tfidf[0:1000])
+    predictions = classifier.predict(X_test_tfidf[0:5000])
+
     # accuracy
-    print("Accuracy = ", accuracy_score(y_test[0:1000], predictions))
+    from sklearn.metrics import accuracy_score
+    print("Accuracy = ", accuracy_score(y_test[0:5000], predictions))
     
     
     
