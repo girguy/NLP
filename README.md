@@ -16,8 +16,8 @@ conda install -c anaconda nltk
 ## Usage
 
 ```python
-naiveBayes_svm2.py -> clean the data then perform the classification
-naiveBayes_svm2.py -> load the cleaned data (sparse matrix format)
+naiveBayes_svm.py : clean the data then perform the classification
+naiveBayes_svm2.py : load the cleaned data (sparse matrix format)
                       then perform a classification
 ```
 
