@@ -4,8 +4,6 @@ NLP project on classification of toxic comments.
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
-
 ```bash
 pip install scikit-multilearn
 conda install -c anaconda scipy
