@@ -116,31 +116,49 @@ def function_labels(data):
 
 
 if __name__ == "__main__":
+
+    import sys
+    import os
+
+    input_train_path = sys.argv[1]
+    if not os.path.exists(input_train_path):
+        print("This 'train' file do not exit")
+        sys.exit(1)
+
+    input_test_path = sys.argv[2]
+    if not os.path.exists(input_test_path):
+        print("This 'test' file do not exit")
+        sys.exit(1)
+
+    input_test_labels_path = sys.argv[3]
+    if not os.path.exists(input_test_labels_path):
+        print("This 'test_labels' file do not exit")
+        sys.exit(1)
     
-    train = pd.read_csv('/home/cj/Bureau/Master2/webAndText/project/data/train.csv')
+    train = pd.read_csv(input_train_path)
     train_text = train.filter(["comment_text"], axis=1)
 
     #Data cleaning and feature extraction for training set
     train_text = corpus_cleaning(train_text)
     X_train_tfidf = function_tfidf(train_text)
     #Save
-    scipy.sparse.save_npz('/home/cj/Bureau/X_train_tfidf.npz', X_train_tfidf)
+    #scipy.sparse.save_npz('/home/cj/Bureau/X_train_tfidf.npz', X_train_tfidf)
 
-    test = pd.read_csv('/home/cj/Bureau/Master2/webAndText/project/data/test.csv')
+    test = pd.read_csv(input_test_path)
     test_text = test.filter(["comment_text", ], axis=1)
 
     #Data cleaning and feature extraction for test set
     test_text = corpus_cleaning(test_text)
     X_test_tfidf = function_tfidf(test_text)
     #Save
-    scipy.sparse.save_npz('/home/cj/Bureau/X_test_tfidf.npz', X_test_tfidf)
+    #scipy.sparse.save_npz('/home/cj/Bureau/X_test_tfidf.npz', X_test_tfidf)
 
     # Training set labels
     train_labels = train.drop(labels = ['id','comment_text'], axis=1)
     y_train = function_labels(train_labels)
 
     # Test set labels
-    test_labels = pd.read_csv('/home/cj/Bureau/Master2/webAndText/project/data/test_labels.csv')
+    test_labels = pd.read_csv(input_test_labels_path)
     test_labels = test_labels.drop(labels = "id", axis=1)
     y_test = function_labels(test_labels)
     
