@@ -1,4 +1,4 @@
-# Toxic classification using naive bayes et support vector machine classifier
+# Toxic comment classification using naive bayes et support vector machine classifier
 
 NLP project on classification of toxic comments using different classification methods such as TF-idf,
 mutual information and part of speech.
@@ -34,9 +34,8 @@ WARNING : <br/>
 
 ## Usage
 
-```
 SLURM works with a run.sh file that needs to be personalized for every python. Some example are in the directories.
-```
 
+## Results
 
-
+They will be put in due time.
