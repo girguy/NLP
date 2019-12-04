@@ -1,4 +1,4 @@
-# Toxic comment classification using naive bayes et support vector machine classifier
+# Toxic comment classification using naive bayes and support vector machine classifier
 
 NLP project on classification of toxic comments using different classification methods such as TF-idf,
 mutual information and part of speech.
