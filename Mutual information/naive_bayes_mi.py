@@ -3,7 +3,7 @@
 """
 Created on Sat Nov 16 15:47:44 2019
 
-@author: cj
+@author: Guy Girineza
 """
 
 import sys
@@ -11,19 +11,11 @@ import os
 import re
 import string
 import pandas as pd
+import numpy as np
 pd.options.mode.chained_assignment = None
 import nltk
-from nltk import word_tokenize
 import scipy as scipy
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-from nltk.stem import SnowballStemmer
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from skmultilearn.problem_transform import BinaryRelevance
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import MultiLabelBinarizer
+
 
 """
 Remove HTML entities from the comments
@@ -36,7 +28,7 @@ def clean_html(comment):
 """
 function to clean the word of any punctuation or special characters
 """
-def clean_punc(comment): #function to clean the word of any punctuation or special characters
+def clean_punc(comment):
     cleaned = re.sub(r'[?|!|\'|"|#]',r'',comment)
     cleaned = re.sub(r'[.|,|)|(|\|/]',r' ',cleaned)
     cleaned = cleaned.strip()
@@ -56,23 +48,27 @@ def clean_non_alpha(comment):
     return cleaned
 
 """
-List of stop words
+List of stop words.
 """
-    
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
 stop_words = set(ENGLISH_STOP_WORDS)
 stop_words.update(['zero','one','two','three','four','five','six','seven',
                    'eight','nine','ten','may','also','across','among',
                    'beside','however','yet','within'])
-    
 list_stop_words = re.compile(r"\b(" + "|".join(stop_words) + ")\\W", re.I)
-
     
 """
-Remove stop word
+Remove stop word in a corpus.
 """
 def remove_stop_words(comment):
     global list_stop_words
     return list_stop_words.sub(" ", comment)
+
+"""
+Function that perfoms a stemming on words on that corpus.
+"""
+from nltk.stem import SnowballStemmer
 
 stemmer = SnowballStemmer("english")
 def stemming(comment):
@@ -86,120 +82,106 @@ def stemming(comment):
 
 
 """
-Cleaning function
+Cleaning of a corpus using different functions defined above.
 """
 def corpus_cleaning(data):
     data['comment_text'] = data['comment_text'].str.lower()
     data['comment_text'] = data['comment_text'].apply(clean_html)
     data['comment_text'] = data['comment_text'].apply(clean_punc)
     data['comment_text'] = data['comment_text'].apply(clean_non_alpha)
-    #data['comment_text'] = data['comment_text'].apply(remove_stop_words)
-    #data['comment_text'] = data['comment_text'].apply(stemming)
-  
+    data['comment_text'] = data['comment_text'].apply(remove_stop_words)
+    data['comment_text'] = data['comment_text'].apply(stemming)
     return data
 
-"""
-Tokenization and pos of tag of the corpus
-"""
-def tokenization_pos_tag(corpus):
-    corpus = corpus.tolist()
-    X = []
-    for sentence in corpus:
-        tokenized = word_tokenize(sentence)
-        X.append(nltk.pos_tag(tokenized))
-    
-    return X
-
-from sklearn.feature_extraction import DictVectorizer
-def training_set(corpus_tagged):
-    X_features = []
-    for sentence in corpus_tagged:
-        for k in range(len(sentence)):
-            X_features.append(extract_features(sentence, k))
-
-    vectoriser = DictVectorizer(sparse=False)
-    X = vectoriser.fit_transform(X_features)
-    
-    return X
-
-y_mlb = MultiLabelBinarizer()
-
-"""
-Transform the labels format in order to use it in the machine learning api.
-"""
-def function_labels(data):
-    #In order to use TfidfVectorizer, pandas dataframe is converted in a list
-    data = data.values.tolist()
-    return y_mlb.fit_transform(data)
-
-def extract_features(tagged_sentence, index):
-    token, tag = tagged_sentence[index]
-    features_dict = {"token": token,
-                     "tag" : tag}
-    return features_dict
-
-"""
-Bag of word of tagged corpus
-"""
-def dataset_creation(data):
-    dataset = []
-    for sentence in data:
-        new = ''
-        for word_tag in sentence:
-            word, tag = word_tag
-            new = new + word+'_'+tag+' '
-        dataset.append(new.strip())
-    
-    return dataset
 
 
 if __name__ == "__main__":
-
+    
     input_train_path = sys.argv[1]
     if not os.path.exists(input_train_path):
         print("This 'train' file do not exit")
         sys.exit(1)
 
-    print("Ficher charge")
-    
     data = pd.read_csv(input_train_path)
     
-    train, test = train_test_split(data, random_state=42,
+    from sklearn.model_selection import train_test_split
+
+    train, test = train_test_split(data, random_state=45,
                                    test_size=0.30, shuffle=True)
     
-    train_text = train.filter(["comment_text"],
+    train_data = train.filter(["comment_text"],
                               axis=1).reset_index(drop=True)
     train_labels = train.drop(labels = ['id','comment_text'],
                               axis=1).reset_index(drop=True)
     
-    test_text = test.filter(["comment_text"],
+    test_data = test.filter(["comment_text"],
                             axis=1).reset_index(drop=True)
     test_labels = test.drop(labels = ['id','comment_text'],
                             axis=1).reset_index(drop=True)
-    
-    #Data cleaning for training and set
-    train_text = corpus_cleaning(train_text)
-    test_text = corpus_cleaning(test_text)
 
-    train_text_tagged = tokenization_pos_tag(train_text["comment_text"])
-    test_text_pos = tokenization_pos_tag(test_text["comment_text"])
+    # Processing of the train labels y_train
+    dic_labels = {0: 'toxic', 1: 'severe_toxic', 2: 'obscene', 3: 'threat', 4: 'insult', 5: 'identity_hate'}
+    y = np.array(train_labels)
 
-    X_train = dataset_creation(train_text_tagged)
-    X_test = dataset_creation(test_text_pos)
+    y_train = []
+    for i in range(len(y)):
+        value_index = np.where(y[i] == 1)
+        name = ''
+        for j in value_index[0]:
+            name = name + dic_labels[j] + '_'
+        if name == '':
+            y_train.append('non_toxic')
+        else:
+            y_train.append(name.strip('_').strip())
+
     
-    from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+    # Processing of the train data x_train
+    x_train = train_data['comment_text']
+
     from sklearn.feature_extraction.text import CountVectorizer
 
-    vect = CountVectorizer(min_df=1,  max_features=3000).fit(X_train)
-    vect = CountVectorizer(min_df=1,  max_features=3000).fit(X_test)
-    X_train = vect.transform(X_train)
-    X_test = vect.transform(X_test)
+    vect = CountVectorizer(max_features = 10000)
+    vect.fit(x_train)
+    x_train = vect.transform(x_train)
+
+    # Mutual information
+    from sklearn.feature_selection import mutual_info_classif
+
+    mi = mutual_info_classif(x_train, y_train)
+
+    # We retreive the n features among 10000 features that contribute to
+    # the making a correct classification
+    n = 4250
+    name = []
+    for score, fname in sorted(zip(mi, vect.get_feature_names()), reverse=True)[:n]:
+        name.append(fname)
+        
+    x_train = pd.DataFrame(data=x_train.toarray())
+    x_train.columns = vect.get_feature_names()
+
+    # Retreive the dataframe countaining the n best columns
+    from scipy import sparse
+
+    x_train = x_train[name]
+    x_train = sparse.csr_matrix(np.array(x_train))
+
+    from skmultilearn.problem_transform import BinaryRelevance
+    from sklearn.naive_bayes import GaussianNB
     
     classifier = BinaryRelevance(GaussianNB())
-    classifier.fit(X_train, train_labels)
-    
-    # predict
-    predictions = classifier.predict(X_test)
+    # Train the model
+    classifier.fit(x_train, train_labels)
+
+    x_test = test_data['comment_text'] 
+    vect = CountVectorizer(min_df = 1,  max_features = n).fit(x_test)
+
+    # create a vocabulary content for each document of the corpus then use the 
+    x_test = vect.transform(x_test)
+
+    # Predictions
+    predictions = classifier.predict(x_test)
 
     # accuracy
+    from sklearn.metrics import accuracy_score
+
     print("Accuracy = ", accuracy_score(test_labels, predictions))
