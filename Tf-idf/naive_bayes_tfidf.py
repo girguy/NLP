@@ -72,6 +72,8 @@ def corpus_cleaning(data):
 """
 This function return a document-word matrix computed for TFIDF
 """
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 def function_tfidf(train, test):
     #In order to use TfidfVectorizer, pandas dataframe is converted in a list
     text_train = train["comment_text"].values.tolist()
@@ -126,7 +128,6 @@ if __name__ == "__main__":
     test_data = corpus_cleaning(test_data)
 
     # Tf-IdF corpus for the training and test set
-    from sklearn.feature_extraction.text import TfidfVectorizer
 
     X_train_tfidf, X_test_tfidf = function_tfidf(train_data, test_data)
 
