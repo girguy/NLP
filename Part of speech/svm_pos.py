@@ -15,15 +15,7 @@ pd.options.mode.chained_assignment = None
 import nltk
 from nltk import word_tokenize
 import scipy as scipy
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-from nltk.stem import SnowballStemmer
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from skmultilearn.problem_transform import BinaryRelevance
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import MultiLabelBinarizer
+
 
 """
 Remove HTML entities from the comments
@@ -58,7 +50,8 @@ def clean_non_alpha(comment):
 """
 List of stop words
 """
-    
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
 stop_words = set(ENGLISH_STOP_WORDS)
 stop_words.update(['zero','one','two','three','four','five','six','seven',
                    'eight','nine','ten','may','also','across','among',
@@ -73,6 +66,8 @@ Remove stop word
 def remove_stop_words(comment):
     global list_stop_words
     return list_stop_words.sub(" ", comment)
+
+from nltk.stem import SnowballStemmer
 
 stemmer = SnowballStemmer("english")
 def stemming(comment):
@@ -110,33 +105,6 @@ def tokenization_pos_tag(corpus):
     
     return X
 
-from sklearn.feature_extraction import DictVectorizer
-def training_set(corpus_tagged):
-    X_features = []
-    for sentence in corpus_tagged:
-        for k in range(len(sentence)):
-            X_features.append(extract_features(sentence, k))
-
-    vectoriser = DictVectorizer(sparse=False)
-    X = vectoriser.fit_transform(X_features)
-    
-    return X
-
-y_mlb = MultiLabelBinarizer()
-
-"""
-Transform the labels format in order to use it in the machine learning api.
-"""
-def function_labels(data):
-    #In order to use TfidfVectorizer, pandas dataframe is converted in a list
-    data = data.values.tolist()
-    return y_mlb.fit_transform(data)
-
-def extract_features(tagged_sentence, index):
-    token, tag = tagged_sentence[index]
-    features_dict = {"token": token,
-                     "tag" : tag}
-    return features_dict
 
 """
 Bag of word of tagged corpus
@@ -164,6 +132,8 @@ if __name__ == "__main__":
     
     data = pd.read_csv(input_train_path)
     
+    from sklearn.model_selection import train_test_split
+
     train, test = train_test_split(data, random_state=42,
                                    test_size=0.30, shuffle=True)
     
@@ -194,6 +164,9 @@ if __name__ == "__main__":
     vect = CountVectorizer(min_df=1,  max_features=5000).fit(X_test)
     X_train = vect.transform(X_train)
     X_test = vect.transform(X_test)
+
+    from skmultilearn.problem_transform import BinaryRelevance
+    from sklearn.svm import LinearSVC
     
     classifier = BinaryRelevance(LinearSVC())
     # train
@@ -202,6 +175,8 @@ if __name__ == "__main__":
     predictions = classifier.predict(X_test)
 
     # accuracy
+    from sklearn.metrics import accuracy_score
+
     print("Accuracy = ", accuracy_score(test_labels, predictions))
 
 
