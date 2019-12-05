@@ -9,11 +9,8 @@ Created on Sat Nov 16 15:47:44 2019
 import sys
 import os
 import re
-import string
 import pandas as pd
 pd.options.mode.chained_assignment = None
-import nltk
-import scipy as scipy
 
 
 """
@@ -22,6 +19,7 @@ Remove HTML entities from the comments
 def clean_html(comment):
     cleaner = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
     cleaned = re.sub(cleaner, '', comment)
+    
     return cleaned
 
 """
@@ -32,6 +30,7 @@ def clean_punc(comment): #function to clean the word of any punctuation or speci
     cleaned = re.sub(r'[.|,|)|(|\|/]',r' ',cleaned)
     cleaned = cleaned.strip()
     cleaned = cleaned.replace("\n"," ")
+    
     return cleaned
 
 """
@@ -44,6 +43,7 @@ def clean_non_alpha(comment):
         cleaned = cleaned + clean_word
         cleaned = cleaned + " "
     cleaned = cleaned.strip()
+    
     return cleaned
 
 """
@@ -64,6 +64,7 @@ Remove stop word
 """
 def remove_stop_words(comment):
     global list_stop_words
+    
     return list_stop_words.sub(" ", comment)
 
 from nltk.stem import SnowballStemmer
@@ -76,9 +77,8 @@ def stemming(comment):
         stemSentence += stem
         stemSentence += " "
     stemSentence = stemSentence.strip()
-    return stemSentence
-
     
+    return stemSentence
 
 """
 Cleaning function
@@ -91,6 +91,7 @@ def corpus_cleaning(data):
     data['comment_text'] = data['comment_text'].apply(clean_non_alpha)
     data['comment_text'] = data['comment_text'].apply(remove_stop_words)
     data['comment_text'] = data['comment_text'].apply(stemming)
+    
     return data
 
 
@@ -112,17 +113,6 @@ def function_tfidf(train, test):
 
     return tfidf_vectorizer.transform(text_train), tfidf_vectorizer.transform(text_test)
 
-from sklearn.preprocessing import MultiLabelBinarizer
-
-y_mlb = MultiLabelBinarizer()
-
-"""
-Transform the labels format in order to use it in the machine learning api.
-"""
-def function_labels(data):
-    #In order to use TfidfVectorizer, pandas dataframe is converted in a list
-    data = data.values.tolist()
-    return y_mlb.fit_transform(data)
 
 
 if __name__ == "__main__":
@@ -160,7 +150,7 @@ if __name__ == "__main__":
     from skmultilearn.problem_transform import BinaryRelevance
     from sklearn.svm import LinearSVC
     classifier = BinaryRelevance(LinearSVC())
-
+    
     # train
     classifier.fit(X_train_tfidf, train_labels)
 
@@ -171,9 +161,12 @@ if __name__ == "__main__":
     from sklearn.metrics import accuracy_score
 
     print("Accuracy = ", accuracy_score(test_labels, predictions))
-
+    
+    # Confusion matrix 
     pred = predictions.toarray()
+    
     import sklearn.metrics as skm
+    
     cm = skm.multilabel_confusion_matrix(test_labels, pred)
     print(cm)
     print(skm.classification_report(test_labels, pred))

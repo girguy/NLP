@@ -9,11 +9,8 @@ Created on Sat Nov 16 15:47:44 2019
 import sys
 import os
 import re
-import string
 import pandas as pd
 pd.options.mode.chained_assignment = None
-import nltk
-import scipy as scipy
 
 
 """
@@ -149,7 +146,9 @@ if __name__ == "__main__":
 
     # confusion matix
     pred = predictions.toarray()
+    
     import sklearn.metrics as skm
+    
     cm = skm.multilabel_confusion_matrix(test_labels, pred)
     print(cm)
     print(skm.classification_report(test_labels, pred))

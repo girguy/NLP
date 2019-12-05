@@ -9,12 +9,10 @@ Created on Sat Nov 16 15:47:44 2019
 import sys
 import os
 import re
-import string
 import pandas as pd
 pd.options.mode.chained_assignment = None
 import nltk
 from nltk import word_tokenize
-import scipy as scipy
 
 
 """
@@ -137,25 +135,25 @@ if __name__ == "__main__":
     train, test = train_test_split(data, random_state=42,
                                    test_size=0.30, shuffle=True)
     
-    train_text = train.filter(["comment_text"],
+    train_data = train.filter(["comment_text"],
                               axis=1).reset_index(drop=True)
     train_labels = train.drop(labels = ['id','comment_text'],
                               axis=1).reset_index(drop=True)
     
-    test_text = test.filter(["comment_text"],
+    test_data = test.filter(["comment_text"],
                             axis=1).reset_index(drop=True)
     test_labels = test.drop(labels = ['id','comment_text'],
                             axis=1).reset_index(drop=True)
     
     #Data cleaning for training and set
-    train_text = corpus_cleaning(train_text)
-    test_text = corpus_cleaning(test_text)
+    train_data = corpus_cleaning(train_data)
+    test_data = corpus_cleaning(test_data)
 
-    train_text_tagged = tokenization_pos_tag(train_text["comment_text"])
-    test_text_pos = tokenization_pos_tag(test_text["comment_text"])
+    train_data_tagged = tokenization_pos_tag(train_data["comment_text"])
+    test_data_pos = tokenization_pos_tag(test_data["comment_text"])
 
-    X_train = dataset_creation(train_text_tagged)
-    X_test = dataset_creation(test_text_pos)
+    X_train = dataset_creation(train_data_tagged)
+    X_test = dataset_creation(test_data_pos)
     
     from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
     from sklearn.feature_extraction.text import CountVectorizer
@@ -178,6 +176,15 @@ if __name__ == "__main__":
     from sklearn.metrics import accuracy_score
 
     print("Accuracy = ", accuracy_score(test_labels, predictions))
+    
+    # confusion matix
+    pred = predictions.toarray()
+    
+    import sklearn.metrics as skm
+    
+    cm = skm.multilabel_confusion_matrix(test_labels, pred)
+    print(cm)
+    print(skm.classification_report(test_labels, pred))
 
 
     

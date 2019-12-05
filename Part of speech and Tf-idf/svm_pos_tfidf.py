@@ -136,20 +136,6 @@ def function_tfidf(train, test):
 
     return tfidf_vectorizer.transform(train), tfidf_vectorizer.transform(test)
 
-from sklearn.preprocessing import MultiLabelBinarizer
-
-y_mlb = MultiLabelBinarizer()
-
-"""
-Transform the labels format in order to use it in the machine learning api.
-"""
-def function_labels(data):
-    #In order to use TfidfVectorizer, pandas dataframe is converted in a list
-    data = data.values.tolist()
-    
-    return y_mlb.fit_transform(data)
-
-
 
 if __name__ == "__main__":
 
@@ -201,3 +187,12 @@ if __name__ == "__main__":
     from sklearn.metrics import accuracy_score
 
     print("Accuracy = ", accuracy_score(test_labels, predictions))
+    
+    # confusion matix
+    pred = predictions.toarray()
+    
+    import sklearn.metrics as skm
+    
+    cm = skm.multilabel_confusion_matrix(test_labels, pred)
+    print(cm)
+    print(skm.classification_report(test_labels, pred))

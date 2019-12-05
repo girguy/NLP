@@ -139,20 +139,6 @@ def function_tfidf(train, test):
 
     return tfidf_vectorizer.transform(train), tfidf_vectorizer.transform(test)
 
-from sklearn.preprocessing import MultiLabelBinarizer
-
-y_mlb = MultiLabelBinarizer()
-
-"""
-Transform the labels format in order to use it in the machine learning api.
-"""
-def function_labels(data):
-    #In order to use TfidfVectorizer, pandas dataframe is converted in a list
-    data = data.values.tolist()
-    
-    return y_mlb.fit_transform(data)
-
-
 
 if __name__ == "__main__":
 
@@ -180,8 +166,8 @@ if __name__ == "__main__":
                             axis=1).reset_index(drop=True)
     
     #Data cleaning for training and set
-    train_data = corpus_cleaning(train_data)
-    test_data = corpus_cleaning(test_data)
+    train_data = corpus_cleaning(train_data[0:1000])
+    test_data = corpus_cleaning(test_data[0:10])
 
     train_data = tokenization_pos_tag(train_data["comment_text"])
     test_data = tokenization_pos_tag(test_data["comment_text"])
@@ -195,7 +181,7 @@ if __name__ == "__main__":
     from sklearn.naive_bayes import GaussianNB
     
     classifier = BinaryRelevance(GaussianNB())
-    classifier.fit(X_train_tfidf, train_labels)
+    classifier.fit(X_train_tfidf, train_labels[0:1000])
     
     # predict
     predictions = classifier.predict(X_test_tfidf)
@@ -203,4 +189,13 @@ if __name__ == "__main__":
     # accuracy
     from sklearn.metrics import accuracy_score
 
-    print("Accuracy = ", accuracy_score(test_labels, predictions))
+    print("Accuracy = ", accuracy_score(test_labels[0:10], predictions))
+    
+    # confusion matix
+    pred = predictions.toarray()
+    
+    import sklearn.metrics as skm
+    
+    cm = skm.multilabel_confusion_matrix(test_labels[0:10], pred)
+    print(cm)
+    print(skm.classification_report(test_labels[0:10], pred))

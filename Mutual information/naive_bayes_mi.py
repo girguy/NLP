@@ -9,12 +9,9 @@ Created on Sat Nov 16 15:47:44 2019
 import sys
 import os
 import re
-import string
 import pandas as pd
 import numpy as np
 pd.options.mode.chained_assignment = None
-import nltk
-import scipy as scipy
 
 
 """
@@ -151,7 +148,7 @@ if __name__ == "__main__":
 
     # We retreive the n features among 10000 features that contribute to
     # the making a correct classification
-    n = 4250
+    n = 4000
     name = []
     for score, fname in sorted(zip(mi, vect.get_feature_names()), reverse=True)[:n]:
         name.append(fname)
@@ -185,3 +182,12 @@ if __name__ == "__main__":
     from sklearn.metrics import accuracy_score
 
     print("Accuracy = ", accuracy_score(test_labels, predictions))
+    
+    # confusion matix
+    pred = predictions.toarray()
+    
+    import sklearn.metrics as skm
+    
+    cm = skm.multilabel_confusion_matrix(test_labels, pred)
+    print(cm)
+    print(skm.classification_report(test_labels, pred))
