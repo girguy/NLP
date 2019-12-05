@@ -3,7 +3,7 @@
 """
 Created on Sat Nov 16 15:47:44 2019
 
-@author: cj
+@author: Guy Girineza
 """
 
 import sys
@@ -14,15 +14,7 @@ import pandas as pd
 pd.options.mode.chained_assignment = None
 import nltk
 import scipy as scipy
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-from nltk.stem import SnowballStemmer
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from skmultilearn.problem_transform import BinaryRelevance
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import MultiLabelBinarizer
+
 
 """
 Remove HTML entities from the comments
@@ -57,7 +49,8 @@ def clean_non_alpha(comment):
 """
 List of stop words
 """
-    
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
 stop_words = set(ENGLISH_STOP_WORDS)
 stop_words.update(['zero','one','two','three','four','five','six','seven',
                    'eight','nine','ten','may','also','across','among',
@@ -72,6 +65,8 @@ Remove stop word
 def remove_stop_words(comment):
     global list_stop_words
     return list_stop_words.sub(" ", comment)
+
+from nltk.stem import SnowballStemmer
 
 stemmer = SnowballStemmer("english")
 def stemming(comment):
@@ -96,7 +91,6 @@ def corpus_cleaning(data):
     data['comment_text'] = data['comment_text'].apply(clean_non_alpha)
     data['comment_text'] = data['comment_text'].apply(remove_stop_words)
     data['comment_text'] = data['comment_text'].apply(stemming)
-  
     return data
 
 
@@ -113,9 +107,10 @@ def function_tfidf(train, test):
 
     tfidf_vectorizer.fit(text_train)
     tfidf_vectorizer.fit(text_test)
-				    
+
     return tfidf_vectorizer.transform(text_train), tfidf_vectorizer.transform(text_test)
 
+from sklearn.preprocessing import MultiLabelBinarizer
 
 y_mlb = MultiLabelBinarizer()
 
@@ -134,36 +129,35 @@ if __name__ == "__main__":
     if not os.path.exists(input_train_path):
         print("This 'train' file do not exit")
         sys.exit(1)
-
-    method = sys.argv[2]
-
-    print("Ficher charge")
     
     data = pd.read_csv(input_train_path)
     
+    from sklearn.model_selection import train_test_split
+
     train, test = train_test_split(data, random_state=42,
                                    test_size=0.30, shuffle=True)
     
-    train_text = train.filter(["comment_text"],
+    train_data = train.filter(["comment_text"],
                               axis=1).reset_index(drop=True)
     train_labels = train.drop(labels = ['id','comment_text'],
                               axis=1).reset_index(drop=True)
     
-    test_text = test.filter(["comment_text"],
+    test_data = test.filter(["comment_text"],
                             axis=1).reset_index(drop=True)
     test_labels = test.drop(labels = ['id','comment_text'],
                             axis=1).reset_index(drop=True)
     
     #Data cleaning for training and set
-    train_text = corpus_cleaning(train_text)
-    test_text = corpus_cleaning(test_text)
+    train_data = corpus_cleaning(train_data)
+    test_data = corpus_cleaning(test_data)
 
     # Tf-IdF corpus for the training and test set
-    X_train_tfidf, X_test_tfidf = function_tfidf(train_text, test_text)
-    
-    print(X_train_tfidf.shape[1])
-    print(X_test_tfidf.shape[1])
-    
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    X_train_tfidf, X_test_tfidf = function_tfidf(train_data, test_data)
+
+    from skmultilearn.problem_transform import BinaryRelevance
+    from sklearn.svm import LinearSVC
     classifier = BinaryRelevance(LinearSVC())
 
     # train
@@ -173,6 +167,8 @@ if __name__ == "__main__":
     predictions = classifier.predict(X_test_tfidf)
 
     # accuracy
+    from sklearn.metrics import accuracy_score
+
     print("Accuracy = ", accuracy_score(test_labels, predictions))
 
     pred = predictions.toarray()
